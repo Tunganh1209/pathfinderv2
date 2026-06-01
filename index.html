@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BFS/DFS Pathfinder</title>
+<style>
+:root{
+  --bg:#1e1e2e;--bg2:#2a2a3e;--bg3:#313149;--bg4:#1a1a2e;
+  --accent:#7c3aed;--accent2:#a78bfa;
+  --btn:#3730a3;--btnhov:#4f46e5;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --err:#ef4444;--ok:#22c55e;--warn:#f59e0b;
+  --wall:#0f172a;--free:#334155;--visited:#1d4ed8;
+  --path:#fbbf24;--alt:#7c3aed;--agent:#f97316;
+  --start:#16a34a;--end:#dc2626;--border:#475569;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── AUTH ── */
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.auth-card{background:var(--bg2);border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 40px #0008;}
+.auth-header{background:var(--accent);padding:6px;}
+.auth-body{padding:28px 36px 32px;}
+.auth-logo{text-align:center;margin-bottom:20px;}
+.auth-logo h1{font-size:20px;color:var(--accent2);font-weight:700;}
+.auth-logo p{font-size:12px;color:var(--text2);margin-top:4px;}
+.auth-tabs{display:flex;border-bottom:2px solid var(--bg3);margin-bottom:20px;}
+.auth-tab{flex:1;padding:9px;background:transparent;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:all .15s;}
+.auth-tab.active{color:var(--text);border-bottom:2px solid var(--accent2);margin-bottom:-2px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+.form-group input{width:100%;background:var(--bg3);border:1.5px solid var(--bg4);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;outline:none;transition:border .15s;font-family:inherit;}
+.form-group input:focus{border-color:var(--accent2);}
+.msg{font-size:12px;min-height:18px;margin-bottom:8px;text-align:center;}
+.msg.err{color:var(--err);}
+.msg.ok{color:var(--ok);}
+.btn-full{width:100%;padding:11px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-full:hover{opacity:.88;transform:translateY(-1px);}
+.btn-full:active{transform:translateY(0);}
+
+/* ── MAIN APP ── */
+#main-screen{display:none;flex-direction:column;height:100vh;}
+.topbar{background:var(--accent);height:46px;display:flex;align-items:center;padding:0 16px;flex-shrink:0;}
+.topbar h1{font-size:15px;font-weight:700;flex:1;}
+.topbar .user{font-size:12px;opacity:.9;margin-right:12px;}
+.topbar .logout{font-size:11px;background:rgba(0,0,0,.25);border:none;color:var(--text);border-radius:5px;padding:4px 10px;cursor:pointer;}
+.layout{display:flex;flex:1;overflow:hidden;}
+
+/* LEFT */
+.left{width:272px;background:var(--bg2);flex-shrink:0;overflow-y:auto;padding:8px 0;}
+.sec{margin:0 8px 2px;}
+.sec-bar{background:var(--accent);height:2px;border-radius:1px;}
+.sec-title{font-size:10px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.07em;padding:4px 4px 6px;}
+.row2g{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 8px;}
+.fl-label{font-size:11px;color:var(--text2);margin-bottom:3px;}
+input[type=number],input[type=text]{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:13px;width:100%;outline:none;font-family:inherit;}
+input[type=number]:focus,input[type=text]:focus{border-color:var(--accent2);}
+.lbtn{display:block;width:calc(100% - 16px);margin:3px 8px;padding:8px 10px;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;}
+.lbtn:hover{filter:brightness(1.15);}
+.lbtn:active{transform:scale(.98);}
+.radio-group{display:flex;gap:0;padding:0 8px;}
+.radio-group label{flex:1;text-align:center;padding:7px 4px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text2);border:1px solid var(--border);transition:all .15s;}
+.radio-group label:first-child{border-radius:7px 0 0 7px;}
+.radio-group label:last-child{border-radius:0 7px 7px 0;}
+.radio-group input{display:none;}
+.radio-group input:checked+label,.radio-group label:has(input:checked){background:var(--accent);color:var(--text);border-color:var(--accent);}
+.speed-row{display:flex;align-items:center;gap:8px;padding:4px 8px;font-size:11px;color:var(--text2);}
+.speed-row input[type=range]{flex:1;accent-color:var(--accent2);}
+.hist-box{margin:0 8px;background:var(--bg);border-radius:6px;padding:6px 8px;font-size:10px;font-family:'Consolas',monospace;color:var(--text2);max-height:90px;overflow-y:auto;line-height:1.6;}
+.legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px 8px;}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);}
+.dot{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
+
+/* RIGHT */
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:8px;}
+.canvas-wrap{flex:1;background:var(--bg2);border-radius:8px;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:8px;}
+canvas{cursor:pointer;display:block;}
+.status-bar{background:var(--bg2);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--text2);margin:6px 0;flex-shrink:0;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex-shrink:0;margin-bottom:6px;}
+.stat{background:var(--bg2);border-radius:8px;padding:8px;text-align:center;}
+.stat-val{font-size:18px;font-weight:700;color:var(--accent2);}
+.stat-lbl{font-size:10px;color:var(--text3);margin-top:2px;}
+.log-section{background:var(--bg2);border-radius:8px;padding:8px 10px;flex-shrink:0;}
+.log-title{font-size:10px;font-weight:700;color:var(--accent2);margin-bottom:4px;}
+.log-box{background:var(--bg4);border-radius:5px;padding:6px 8px;font-size:10px;font-family:'Consolas',monospace;color:var(--text2);max-height:110px;overflow-y:auto;line-height:1.6;white-space:pre;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-header"></div>
+    <div class="auth-body">
+      <div class="auth-logo">
+        <h1>🔷 BFS / DFS PATHFINDER</h1>
+        <p>Đăng nhập để bắt đầu</p>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="showTab('login')">Đăng nhập</button>
+        <button class="auth-tab" onclick="showTab('signup')">Đăng ký</button>
+      </div>
+
+      <!-- Login form -->
+      <div id="tab-login">
+        <div class="form-group"><label>Tên đăng nhập</label><input type="text" id="l-user" placeholder="username" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <div class="form-group"><label>Mật khẩu</label><input type="password" id="l-pw" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <div class="msg err" id="l-msg"></div>
+        <button class="btn-full" style="background:var(--accent);color:#fff" onclick="doLogin()">Đăng nhập →</button>
+      </div>
+
+      <!-- Signup form -->
+      <div id="tab-signup" style="display:none">
+        <div class="form-group"><label>Họ tên hiển thị</label><input type="text" id="s-name" placeholder="Nguyễn Văn A"></div>
+        <div class="form-group"><label>Tên đăng nhập</label><input type="text" id="s-user" placeholder="username (≥3 ký tự)"></div>
+        <div class="form-group"><label>Mật khẩu (≥6 ký tự)</label><input type="password" id="s-pw" placeholder="••••••"></div>
+        <div class="form-group"><label>Nhập lại mật khẩu</label><input type="password" id="s-pw2" placeholder="••••••"></div>
+        <div class="msg err" id="s-msg"></div>
+        <button class="btn-full" style="background:var(--ok);color:#fff" onclick="doSignup()">Tạo tài khoản ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN SCREEN ═══ -->
+<div id="main-screen">
+  <div class="topbar">
+    <h1>🔷 BFS / DFS PATHFINDER</h1>
+    <span class="user" id="top-user"></span>
+    <button class="logout" onclick="doLogout()">Đăng xuất</button>
+  </div>
+  <div class="layout">
+
+    <!-- LEFT PANEL -->
+    <div class="left">
+
+      <div class="sec">
+        <div class="sec-bar"></div>
+        <div class="sec-title">⬛ Cài đặt lưới</div>
+        <div class="row2g">
+          <div><div class="fl-label">Số hàng</div><input type="number" id="rows" value="6" min="2" max="20"></div>
+          <div><div class="fl-label">Số cột</div><input type="number" id="cols" value="6" min="2" max="20"></div>
+        </div>
+        <button class="lbtn" style="background:var(--btn);color:var(--text);margin-top:6px" onclick="newGrid()">📋 Tạo lưới trống</button>
+        <button class="lbtn" style="background:#0f766e;color:var(--text)" onclick="loadSample()">✨ Dùng lưới mẫu</button>
+      </div>
+
+      <div class="sec" style="margin-top:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title">📍 Điểm đi / đến</div>
+        <div class="row2g">
+          <div><div class="fl-label" style="color:#4ade80">🟢 A – Hàng</div><input type="number" id="ar" value="0" min="0"></div>
+          <div><div class="fl-label" style="color:#4ade80">🟢 A – Cột</div><input type="number" id="ac" value="0" min="0"></div>
+          <div><div class="fl-label" style="color:#f87171">🔴 B – Hàng</div><input type="number" id="br" value="5" min="0"></div>
+          <div><div class="fl-label" style="color:#f87171">🔴 B – Cột</div><input type="number" id="bc" value="5" min="0"></div>
+        </div>
+      </div>
+
+      <div class="sec" style="margin-top:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title">⚙️ Thuật toán</div>
+        <div class="radio-group">
+          <label><input type="radio" name="algo" value="BFS" checked>BFS</label>
+          <label><input type="radio" name="algo" value="DFS">DFS</label>
+          <label><input type="radio" name="algo" value="both">Cả hai</label>
+        </div>
+        <div class="speed-row" style="margin-top:8px">
+          <span>Tốc độ</span>
+          <input type="range" id="speed" min="10" max="300" value="80">
+          <span>Nhanh</span>
+        </div>
+      </div>
+
+      <div class="sec" style="margin-top:10px">
+        <button class="lbtn" style="background:var(--accent);color:#fff;font-size:13px;padding:10px" onclick="runAlgo()">▶ CHẠY TÌM ĐƯỜNG</button>
+        <button class="lbtn" style="background:#7f1d1d;color:#fff" onclick="stopAnim()">⏹ Dừng animation</button>
+        <button class="lbtn" style="background:#374151;color:#fff" onclick="resetView()">🔄 Reset lưới</button>
+      </div>
+
+      <div class="sec" style="margin-top:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title">📜 Lịch sử tìm kiếm</div>
+        <div class="hist-box" id="hist-box">(Chưa có lịch sử)</div>
+      </div>
+
+      <div class="sec" style="margin-top:10px">
+        <div class="sec-bar"></div>
+        <div class="sec-title">Chú thích màu</div>
+        <div class="legend-grid">
+          <div class="leg"><span class="dot" style="background:var(--start)"></span>Điểm A</div>
+          <div class="leg"><span class="dot" style="background:var(--end)"></span>Điểm B</div>
+          <div class="leg"><span class="dot" style="background:var(--free)"></span>Ô trống</div>
+          <div class="leg"><span class="dot" style="background:var(--wall)"></span>Tường</div>
+          <div class="leg"><span class="dot" style="background:var(--visited)"></span>BFS duyệt</div>
+          <div class="leg"><span class="dot" style="background:var(--path)"></span>Đường BFS</div>
+          <div class="leg"><span class="dot" style="background:var(--alt)"></span>Đường DFS</div>
+          <div class="leg"><span class="dot" style="background:var(--agent)"></span>Agent 🤖</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right">
+      <div class="stats-row">
+        <div class="stat"><div class="stat-val" id="st-bfs">—</div><div class="stat-lbl">📏 Bước ngắn nhất (BFS)</div></div>
+        <div class="stat"><div class="stat-val" id="st-dfs">—</div><div class="stat-lbl">🔢 Tổng đường đến B</div></div>
+        <div class="stat"><div class="stat-val" id="st-vis">—</div><div class="stat-lbl">🔍 Ô đã duyệt</div></div>
+        <div class="stat"><div class="stat-val" id="st-time">—</div><div class="stat-lbl">⏱ Thời gian (ms)</div></div>
+      </div>
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="c"></canvas>
+      </div>
+      <div class="status-bar" id="status">Hãy tạo hoặc chọn lưới mẫu để bắt đầu. Click ô để đổi 0↔1.</div>
+      <div class="log-section">
+        <div class="log-title">📋 Tất cả đường đến B (DFS) – luôn hiển thị dù chọn BFS:</div>
+        <div class="log-box" id="log-box">(Chạy thuật toán để xem kết quả)</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══ STORAGE / ACCOUNTS ══
+const ACCOUNTS_KEY = 'pf_accounts';
+function loadAccounts(){ try{return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)||'{}')}catch{return{}} }
+function saveAccounts(a){ localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(a)) }
+function hashPw(p){
+  let h=0; for(let i=0;i<p.length;i++){h=(Math.imul(31,h)+p.charCodeAt(i))|0;}
+  return 'h'+Math.abs(h).toString(36)+'_'+p.length;
+}
+let accounts = loadAccounts();
+let currentUser = null;
+
+// ══ AUTH ══
+function showTab(t){
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',i===(t==='login'?0:1)));
+  document.getElementById('tab-login').style.display=t==='login'?'':'none';
+  document.getElementById('tab-signup').style.display=t==='signup'?'':'none';
+}
+function setMsg(id,txt,isOk){
+  const el=document.getElementById(id);
+  el.textContent=txt; el.className='msg '+(isOk?'ok':'err');
+}
+function doLogin(){
+  const u=document.getElementById('l-user').value.trim();
+  const p=document.getElementById('l-pw').value;
+  if(!u||!p){setMsg('l-msg','⚠ Vui lòng nhập đủ thông tin!');return;}
+  if(!accounts[u]){setMsg('l-msg','❌ Tên đăng nhập không tồn tại!');return;}
+  if(accounts[u].password!==hashPw(p)){setMsg('l-msg','❌ Sai mật khẩu!');return;}
+  setMsg('l-msg','✅ Chào '+accounts[u].name+'!',true);
+  currentUser=u;
+  setTimeout(openMain,600);
+}
+function doSignup(){
+  const name=document.getElementById('s-name').value.trim();
+  const u=document.getElementById('s-user').value.trim();
+  const p=document.getElementById('s-pw').value;
+  const p2=document.getElementById('s-pw2').value;
+  if(!name||!u||!p){setMsg('s-msg','⚠ Vui lòng nhập đủ thông tin!');return;}
+  if(u.length<3){setMsg('s-msg','⚠ Tên đăng nhập ít nhất 3 ký tự!');return;}
+  if(p.length<6){setMsg('s-msg','⚠ Mật khẩu ít nhất 6 ký tự!');return;}
+  if(p!==p2){setMsg('s-msg','⚠ Mật khẩu không khớp!');return;}
+  if(accounts[u]){setMsg('s-msg','⚠ Tên đăng nhập đã tồn tại!');return;}
+  accounts[u]={name,password:hashPw(p),created:new Date().toLocaleString('vi'),history:[]};
+  saveAccounts(accounts);
+  setMsg('s-msg','✅ Tạo tài khoản thành công! Hãy đăng nhập.',true);
+  setTimeout(()=>showTab('login'),1000);
+}
+function openMain(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('main-screen').style.display='flex';
+  document.getElementById('top-user').textContent='👤 '+accounts[currentUser].name;
+  loadSample();
+  refreshHist();
+}
+function doLogout(){
+  currentUser=null;
+  document.getElementById('main-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pw').value='';
+  document.getElementById('l-msg').textContent='';
+}
+
+// ══ GRID ══
+const SAMPLE = [
+  [0,1,0,0,0,0],[0,1,0,1,1,0],[0,0,0,1,0,0],
+  [1,1,0,0,0,1],[0,0,1,1,0,0],[0,0,0,0,0,0]
+];
+let gridData=[], animId=null;
+const C=document.getElementById('c'), ctx=C.getContext('2d');
+
+function newGrid(){
+  const r=+document.getElementById('rows').value||6;
+  const c=+document.getElementById('cols').value||6;
+  gridData=Array.from({length:r},()=>Array(c).fill(0));
+  drawGrid(); setStatus('Lưới mới tạo. Click ô để đổi 0↔1.');
+}
+function loadSample(){
+  gridData=SAMPLE.map(r=>[...r]);
+  document.getElementById('rows').value=6;
+  document.getElementById('cols').value=6;
+  document.getElementById('br').value=5;
+  document.getElementById('bc').value=5;
+  drawGrid(); setStatus('Đã tải lưới mẫu 6×6.');
+}
+
+function cellSize(){
+  if(!gridData.length)return 56;
+  const wrap=document.getElementById('canvas-wrap');
+  const cw=(wrap.clientWidth-20)/gridData[0].length;
+  const ch=(wrap.clientHeight-20)/gridData.length;
+  return Math.max(22,Math.min(cw,ch,80));
+}
+
+function drawGrid(visited,path,agent,altPaths){
+  if(!gridData.length)return;
+  const R=gridData.length,CC=gridData[0].length;
+  const cs=cellSize();
+  C.width=CC*cs+8; C.height=R*cs+8;
+  ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,C.width,C.height);
+
+  const ax=+document.getElementById('ar').value, ay=+document.getElementById('ac').value;
+  const bx=+document.getElementById('br').value, by=+document.getElementById('bc').value;
+  const pathSet=new Set((path||[]).map(([r,c])=>r+','+c));
+  const visSet=new Set((visited||[]).map(([r,c])=>r+','+c));
+  const altSet=new Set();
+  if(altPaths) altPaths.forEach(p=>p.forEach(([r,c])=>altSet.add(r+','+c)));
+
+  for(let r=0;r<R;r++){
+    for(let c=0;c<CC;c++){
+      const x0=4+c*cs, y0=4+r*cs, x1=x0+cs-2, y1=y0+cs-2;
+      const key=r+','+c;
+      let fill;
+      if(gridData[r][c]===1) fill='#0f172a';
+      else if(r===ax&&c===ay) fill='#16a34a';
+      else if(r===bx&&c===by) fill='#dc2626';
+      else if(agent&&r===agent[0]&&c===agent[1]) fill='#f97316';
+      else if(pathSet.has(key)) fill='#fbbf24';
+      else if(visSet.has(key)) fill='#1d4ed8';
+      else if(altSet.has(key)) fill='#7c3aed';
+      else fill='#334155';
+
+      ctx.fillStyle=fill;
+      ctx.beginPath(); ctx.roundRect(x0,y0,cs-2,cs-2,4); ctx.fill();
+      ctx.strokeStyle='#475569'; ctx.lineWidth=.8; ctx.stroke();
+
+      const isAB=(r===ax&&c===ay)||(r===bx&&c===by);
+      const isAgent=agent&&r===agent[0]&&c===agent[1];
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      if(r===ax&&c===ay){
+        ctx.fillStyle='#fff'; ctx.font=`bold ${Math.floor(cs*.35)}px Segoe UI`;
+        ctx.fillText('A',x0+cs/2,y0+cs/2);
+      } else if(r===bx&&c===by){
+        ctx.fillStyle='#fff'; ctx.font=`bold ${Math.floor(cs*.35)}px Segoe UI`;
+        ctx.fillText('B',x0+cs/2,y0+cs/2);
+      } else if(isAgent){
+        ctx.font=`${Math.floor(cs*.4)}px serif`; ctx.fillText('●',x0+cs/2,y0+cs/2);
+      } else {
+        ctx.fillStyle=gridData[r][c]===1?'#334155':'#64748b';
+        ctx.font=`${Math.max(8,Math.floor(cs*.22))}px Consolas`;
+        ctx.fillText(gridData[r][c]===0?`(${r},${c})`:'',x0+cs/2,y0+cs/2);
+      }
+    }
+  }
+
+  // Vẽ mũi tên trên đường path
+  if(path&&path.length>1){
+    ctx.strokeStyle='#fef08a'; ctx.lineWidth=3; ctx.lineCap='round';
+    for(let i=0;i<path.length-1;i++){
+      const [r1,c1]=path[i],[r2,c2]=path[i+1];
+      const px1=4+c1*cs+cs/2, py1=4+r1*cs+cs/2;
+      const px2=4+c2*cs+cs/2, py2=4+r2*cs+cs/2;
+      ctx.beginPath(); ctx.moveTo(px1,py1); ctx.lineTo(px2,py2); ctx.stroke();
+      // arrowhead
+      const ang=Math.atan2(py2-py1,px2-px1);
+      const hl=cs*.22;
+      ctx.beginPath();
+      ctx.moveTo(px2,py2);
+      ctx.lineTo(px2-hl*Math.cos(ang-.45),py2-hl*Math.sin(ang-.45));
+      ctx.lineTo(px2-hl*Math.cos(ang+.45),py2-hl*Math.sin(ang+.45));
+      ctx.closePath(); ctx.fillStyle='#fef08a'; ctx.fill();
+    }
+  }
+}
+
+C.addEventListener('click',e=>{
+  if(!gridData.length)return;
+  const cs=cellSize();
+  const rect=C.getBoundingClientRect();
+  const sx=C.width/rect.width, sy=C.height/rect.height;
+  const col=Math.floor(((e.clientX-rect.left)*sx-4)/cs);
+  const row=Math.floor(((e.clientY-rect.top)*sy-4)/cs);
+  const ax=+document.getElementById('ar').value, ay=+document.getElementById('ac').value;
+  const bx=+document.getElementById('br').value, by=+document.getElementById('bc').value;
+  if(row<0||row>=gridData.length||col<0||col>=gridData[0].length)return;
+  if((row===ax&&col===ay)||(row===bx&&col===by))return;
+  gridData[row][col]^=1;
+  drawGrid();
+});
+
+// ══ BFS ══
+function bfs(grid,start,end){
+  const R=grid.length,CC=grid[0].length;
+  const q=[start], visited=new Set([start.join()]);
+  const parent={[start.join()]:null}, log=[start];
+  while(q.length){
+    const curr=q.shift();
+    if(curr[0]===end[0]&&curr[1]===end[1]) break;
+    for(const[dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=curr[0]+dr, nc=curr[1]+dc, nk=nr+','+nc;
+      if(nr>=0&&nr<R&&nc>=0&&nc<CC&&grid[nr][nc]===0&&!visited.has(nk)){
+        visited.add(nk); parent[nk]=curr; q.push([nr,nc]); log.push([nr,nc]);
+      }
+    }
+  }
+  const ek=end.join();
+  if(!(ek in parent)) return {path:null,log};
+  const path=[]; let node=end;
+  while(node){path.unshift(node);node=parent[node.join()];}
+  return {path,log};
+}
+
+// ══ DFS ALL PATHS ══
+function dfsAllPaths(grid,start,end){
+  const R=grid.length,CC=grid[0].length, all=[];
+  const vis=new Set();
+  function dfs(node,path){
+    if(node[0]===end[0]&&node[1]===end[1]){all.push([...path]);return;}
+    vis.add(node.join());
+    for(const[dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=node[0]+dr, nc=node[1]+dc, nk=nr+','+nc;
+      if(nr>=0&&nr<R&&nc>=0&&nc<CC&&grid[nr][nc]===0&&!vis.has(nk)){
+        path.push([nr,nc]); dfs([nr,nc],path); path.pop();
+      }
+    }
+    vis.delete(node.join());
+  }
+  dfs(start,[start]);
+  return all;
+}
+
+// ══ RUN ══
+function getPoint(r,c){
+  if(!gridData.length)return null;
+  const rv=+document.getElementById(r).value, cv=+document.getElementById(c).value;
+  if(rv<0||rv>=gridData.length||cv<0||cv>=gridData[0].length)return null;
+  if(gridData[rv][cv]===1)return null;
+  return [rv,cv];
+}
+
+function runAlgo(){
+  if(!gridData.length){alert('Hãy tạo lưới trước!');return;}
+  const start=getPoint('ar','ac'), end=getPoint('br','bc');
+  if(!start){alert('Điểm A không hợp lệ hoặc nằm trên tường!');return;}
+  if(!end){alert('Điểm B không hợp lệ hoặc nằm trên tường!');return;}
+  if(start[0]===end[0]&&start[1]===end[1]){alert('Điểm A và B phải khác nhau!');return;}
+  stopAnim();
+
+  setStatus('🌲 Đang tính toán...');
+  const algo=document.querySelector('input[name=algo]:checked').value;
+
+  setTimeout(()=>{
+    const t0=performance.now();
+    const {path:bfsPath, log:visitedLog}=bfs(gridData,start,end);
+    const allPaths=dfsAllPaths(gridData,start,end);
+    const elapsed=(performance.now()-t0).toFixed(1);
+
+    document.getElementById('st-bfs').textContent=bfsPath?bfsPath.length-1:'∄';
+    document.getElementById('st-dfs').textContent=allPaths.length;
+    document.getElementById('st-vis').textContent=visitedLog.length;
+    document.getElementById('st-time').textContent=elapsed;
+
+    // Log
+    let logTxt='';
+    if(allPaths.length){
+      const minL=Math.min(...allPaths.map(p=>p.length-1));
+      const maxL=Math.max(...allPaths.map(p=>p.length-1));
+      logTxt=`  Tổng số đường: ${allPaths.length}\n  Đường ngắn nhất: ${bfsPath?bfsPath.length-1:'∄'} bước\n  Đường dài nhất: ${maxL} bước\n${'─'.repeat(50)}\n`;
+      allPaths.forEach((p,i)=>{
+        const tag=bfsPath&&p.length-1===bfsPath.length-1?' ← NGẮN NHẤT':'';
+        logTxt+=`[${String(i+1).padStart(3)}] (${p.length-1} bước)${tag}: ${p.map(([r,c])=>`(${r},${c})`).join(' → ')}\n`;
+      });
+    } else {
+      logTxt='❌ Không có đường nào từ A đến B.';
+    }
+    document.getElementById('log-box').textContent=logTxt;
+
+    // History
+    const ts=new Date().toLocaleString('vi',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    addHistory(`${ts} | A=(${start}) → B=(${end}) | BFS:${bfsPath?bfsPath.length-1:'∄'}b | Tổng:${allPaths.length}`);
+
+    if(!bfsPath){
+      alert('❌ Không tìm thấy đường từ A đến B!');
+      drawGrid(); return;
+    }
+
+    animateSearch(start,end,visitedLog,bfsPath,allPaths,algo);
+  },10);
+}
+
+// ══ ANIMATION 4 PHA ══
+function animateSearch(start,end,visitLog,bfsPath,allPaths,algo){
+  const speed=+document.getElementById('speed').value;
+  const p1=visitLog.length;
+  const p2=p1+15;
+  const p3=p2+(allPaths.length?15:0);
+  const p4=p3+bfsPath.length+15;
+  let f=0;
+
+  function step(){
+    if(f>=p4){
+      const showAlt=algo==='DFS'||algo==='both';
+      drawGrid(visitLog,bfsPath,null,showAlt?allPaths:null);
+      setStatus(`✅ Hoàn tất!  BFS ngắn nhất: ${bfsPath.length-1} bước  |  Tổng đường đến B: ${allPaths.length}`);
+      return;
+    }
+    if(f<p1){
+      drawGrid(visitLog.slice(0,f+1),[]);
+      setStatus(`🔍 BFS đang duyệt... ô [${f+1}/${p1}]`);
+    } else if(f<p2){
+      drawGrid(visitLog,bfsPath);
+      setStatus(`✅ BFS hoàn tất! Đường ngắn nhất: ${bfsPath.length-1} bước`);
+    } else if(f<p3){
+      drawGrid(null,bfsPath,null,allPaths);
+      setStatus(`🌲 DFS tìm thấy ${allPaths.length} đường đi (màu tím)`);
+    } else {
+      const mi=f-p3;
+      const showAlt=algo==='DFS'||algo==='both';
+      if(mi<bfsPath.length){
+        drawGrid(null,bfsPath,bfsPath[mi],showAlt?allPaths:null);
+        setStatus(`🚀 Agent di chuyển... bước ${mi}/${bfsPath.length-1}  (${bfsPath[mi]})`);
+      } else {
+        drawGrid(null,bfsPath,null,showAlt?allPaths:null);
+        setStatus(`🏁 Đã đến đích! Tổng: ${bfsPath.length-1} bước`);
+      }
+    }
+    f++;
+    animId=setTimeout(step,speed);
+  }
+  step();
+}
+
+function stopAnim(){if(animId){clearTimeout(animId);animId=null;setStatus('⏹ Đã dừng animation.');}}
+function resetView(){stopAnim();drawGrid();['st-bfs','st-dfs','st-vis','st-time'].forEach(id=>document.getElementById(id).textContent='—');setStatus('Đã reset. Nhấn ▶ để chạy lại.');}
+function setStatus(t){document.getElementById('status').textContent=t;}
+
+// ══ HISTORY ══
+function addHistory(txt){
+  if(!currentUser)return;
+  const h=accounts[currentUser].history=accounts[currentUser].history||[];
+  h.push(txt); saveAccounts(accounts); refreshHist();
+}
+function refreshHist(){
+  if(!currentUser)return;
+  const h=(accounts[currentUser].history||[]).slice(-10).reverse();
+  document.getElementById('hist-box').textContent=h.length?h.join('\n'):'(Chưa có lịch sử)';
+}
+
+// window resize
+window.addEventListener('resize',()=>{if(gridData.length)drawGrid();});
+</script>
+</body>
+</html>
